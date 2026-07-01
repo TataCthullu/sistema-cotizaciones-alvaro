@@ -1,0 +1,16 @@
+# Base de datos SQLite (se crea automáticamente)
+cambios.db
+
+# Archivos Excel de trabajo
+*.xlsx
+*.xls
+
+# Caché de Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Entornos virtuales
+venv/
+env/
+.venv/

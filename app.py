@@ -15,6 +15,10 @@ class App(tk.Tk):
         self.title("Sistema de Cotizaciones - Álvaro")
         self.geometry("1000x750")
         self.usuario_actual = None
+        # Filtros del admin
+        self.filtro_caja_id = tk.IntVar(value=0)  # 0 = todas
+        self.filtro_tipo = tk.StringVar(value='')
+        self.filtro_estado = tk.StringVar(value='')
         self.mostrar_login()
 
     # ---------- Login ----------
@@ -68,6 +72,51 @@ class App(tk.Tk):
             btn = tk.Button(frame_cajas, text=caja[1],
                             command=lambda c=caja: self.abrir_caja(c[0], c[1]))
             btn.pack(side='left', padx=10, pady=5)
+
+
+        # --- Panel de filtros ---
+        filtros_frame = tk.LabelFrame(self, text="Filtros de órdenes")
+        filtros_frame.pack(fill='x', padx=10, pady=5)
+
+        # Filtro por caja
+        tk.Label(filtros_frame, text="Caja:").pack(side='left', padx=5)
+        self.botones_caja_filtro = []
+        btn_todas = tk.Button(filtros_frame, text="Todas", relief='raised', bg='#4CAF50',
+                              command=lambda: self.toggle_filtro_caja(0))
+        btn_todas.pack(side='left', padx=2)
+        self.botones_caja_filtro.append(btn_todas)
+
+        cajas = get_cajas()
+        for caja in cajas:
+            btn = tk.Button(filtros_frame, text=caja[1], relief='raised', bg='#f0f0f0',
+                            command=lambda c=caja: self.toggle_filtro_caja(c[0]))
+            btn.pack(side='left', padx=2)
+            self.botones_caja_filtro.append(btn)
+
+        # Separador
+        tk.Label(filtros_frame, text="  |  ").pack(side='left')
+
+        # Filtro por tipo
+        tk.Label(filtros_frame, text="Tipo:").pack(side='left', padx=5)
+        self.botones_tipo_filtro = []
+        for tipo, texto in [('', 'Todas'), ('compra', 'Compra'), ('venta', 'Venta')]:
+            btn = tk.Button(filtros_frame, text=texto, relief='raised', bg='#4CAF50' if tipo=='' else '#f0f0f0',
+                            command=lambda t=tipo: self.toggle_filtro_tipo(t))
+            btn.pack(side='left', padx=2)
+            self.botones_tipo_filtro.append(btn)
+
+        # Separador
+        tk.Label(filtros_frame, text="  |  ").pack(side='left')
+
+        # Filtro por estado
+        tk.Label(filtros_frame, text="Estado:").pack(side='left', padx=5)
+        self.botones_estado_filtro = []
+        for estado, texto in [('', 'Todos'), ('pendiente', 'Pendiente'), ('completada', 'Completada')]:
+            btn = tk.Button(filtros_frame, text=texto, relief='raised', bg='#4CAF50' if estado=='' else '#f0f0f0',
+                            command=lambda e=estado: self.toggle_filtro_estado(e))
+            btn.pack(side='left', padx=2)
+            self.botones_estado_filtro.append(btn)
+
 
         frame_ordenes = tk.LabelFrame(self, text="Todas las órdenes")
         frame_ordenes.pack(fill='both', expand=True, padx=10, pady=5)
@@ -139,7 +188,10 @@ class App(tk.Tk):
     def actualizar_vista_ordenes_general(self, frame):
         for w in frame.winfo_children():
             w.destroy()
-        ordenes = get_ordenes_por_caja(caja_id=None, limite=50)
+        caja_id = self.filtro_caja_id.get() if self.filtro_caja_id.get() != 0 else None
+        tipo_op = self.filtro_tipo.get() if self.filtro_tipo.get() else None
+        estado = self.filtro_estado.get() if self.filtro_estado.get() else None
+        ordenes = get_ordenes_por_caja(caja_id=caja_id, limite=50, tipo_operacion=tipo_op, estado=estado)
         columnas = ['ID', 'Fecha', 'Tipo', 'Recibido', 'Entregado', 'Deuda', 'Estado']
         tree = ttk.Treeview(frame, columns=columnas, show='headings', height=10)
         tree.heading('ID', text='ID')
@@ -529,6 +581,53 @@ class App(tk.Tk):
                     break
 
         tk.Button(editor, text="Guardar cambios", command=guardar_cambios).pack(pady=10)
+
+
+    def toggle_filtro_caja(self, caja_id):
+        self.filtro_caja_id.set(caja_id)
+        for btn in self.botones_caja_filtro:
+            btn.configure(bg='#f0f0f0')
+        # Activar el botón correspondiente
+        if caja_id == 0:
+            self.botones_caja_filtro[0].configure(bg='#4CAF50')
+        else:
+            for i, caja in enumerate(get_cajas()):
+                if caja[0] == caja_id:
+                    self.botones_caja_filtro[i+1].configure(bg='#4CAF50')
+                    break
+        self.actualizar_ordenes_filtradas()
+
+    def toggle_filtro_tipo(self, tipo):
+        self.filtro_tipo.set(tipo)
+        for btn in self.botones_tipo_filtro:
+            btn.configure(bg='#f0f0f0')
+        if tipo == '':
+            self.botones_tipo_filtro[0].configure(bg='#4CAF50')
+        elif tipo == 'compra':
+            self.botones_tipo_filtro[1].configure(bg='#4CAF50')
+        elif tipo == 'venta':
+            self.botones_tipo_filtro[2].configure(bg='#4CAF50')
+        self.actualizar_ordenes_filtradas()
+
+    def toggle_filtro_estado(self, estado):
+        self.filtro_estado.set(estado)
+        for btn in self.botones_estado_filtro:
+            btn.configure(bg='#f0f0f0')
+        if estado == '':
+            self.botones_estado_filtro[0].configure(bg='#4CAF50')
+        elif estado == 'pendiente':
+            self.botones_estado_filtro[1].configure(bg='#4CAF50')
+        elif estado == 'completada':
+            self.botones_estado_filtro[2].configure(bg='#4CAF50')
+        self.actualizar_ordenes_filtradas()
+
+    def actualizar_ordenes_filtradas(self):
+        for widget in self.winfo_children():
+            if isinstance(widget, tk.LabelFrame) and widget.cget('text') == 'Todas las órdenes':
+                self.actualizar_vista_ordenes_general(widget)
+                break
+
+
 
     def abrir_form_cotizacion(self):
         ventana = tk.Toplevel(self)

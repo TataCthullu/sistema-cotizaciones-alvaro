@@ -139,7 +139,7 @@ def insertar_orden(tipo_operacion, moneda_recibida, monto_recibido_calc, monto_r
     conn.commit()
     conn.close()
 
-def get_ordenes_por_caja(caja_id=None, limite=50, solo_pendientes=False):
+def get_ordenes_por_caja(caja_id=None, limite=50, solo_pendientes=False, tipo_operacion=None, estado=None):
     conn = conectar()
     c = conn.cursor()
     query = '''SELECT o.id, o.fecha_hora, o.tipo_operacion,
@@ -149,11 +149,17 @@ def get_ordenes_por_caja(caja_id=None, limite=50, solo_pendientes=False):
                FROM ordenes o JOIN cajas c ON o.caja_id = c.id
                WHERE 1=1'''
     params = []
-    if caja_id:
+    if caja_id is not None:
         query += " AND o.caja_id = ?"
         params.append(caja_id)
     if solo_pendientes:
         query += " AND o.estado = 'pendiente'"
+    if tipo_operacion:
+        query += " AND o.tipo_operacion = ?"
+        params.append(tipo_operacion)
+    if estado:
+        query += " AND o.estado = ?"
+        params.append(estado)
     query += " ORDER BY o.id DESC LIMIT ?"
     params.append(limite)
 

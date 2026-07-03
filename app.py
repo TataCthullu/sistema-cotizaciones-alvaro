@@ -2,9 +2,9 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from database import (
     init_db, validar_login, insertar_cotizacion, get_ultimas_cotizaciones,
-    insertar_orden, get_ordenes_por_caja, get_cajas, actualizar_reales_orden
+    insertar_orden, get_ordenes_por_caja, get_cajas, actualizar_reales_orden, get_historial_cotizaciones
 )
-from excel_handler import actualizar_precio_en_todos
+#from excel_handler import actualizar_precio_en_todos
 from config import MONEDAS
 
 MONEDAS_EXT = [m for m in MONEDAS if m != "ARS"]
@@ -49,9 +49,17 @@ class App(tk.Tk):
         tk.Label(self, text=f"Panel Administrador - {self.usuario_actual['id']}",
                  font=('Arial', 14)).pack(pady=5)
 
-        frame_cot = tk.LabelFrame(self, text="Cotizaciones actuales")
-        frame_cot.pack(fill='x', padx=10, pady=5)
-        self.actualizar_vista_cotizaciones(frame_cot)
+        # Pestañas de cotizaciones
+        notebook_cot = ttk.Notebook(self)
+        notebook_cot.pack(fill='x', padx=10, pady=5)
+
+        tab_actuales = tk.Frame(notebook_cot)
+        notebook_cot.add(tab_actuales, text="Cotizaciones actuales")
+        self.actualizar_vista_cotizaciones(tab_actuales)
+
+        tab_historial = tk.Frame(notebook_cot)
+        notebook_cot.add(tab_historial, text="Historial de cotizaciones")
+        self.actualizar_historial_cotizaciones(tab_historial)
 
         frame_cajas = tk.LabelFrame(self, text="Cajas")
         frame_cajas.pack(fill='x', padx=10, pady=5)
@@ -92,20 +100,39 @@ class App(tk.Tk):
         for w in frame.winfo_children():
             w.destroy()
         datos = get_ultimas_cotizaciones()
-        columnas = ['Moneda', 'Compra', 'Venta', 'Actualización']
-        tree = ttk.Treeview(frame, columns=columnas, show='headings', height=4)
+        columnas = ['Par', 'Compra', 'Venta', 'Actualización']
+        tree = ttk.Treeview(frame, columns=columnas, show='headings', height=6)
         for col in columnas:
             tree.heading(col, text=col)
-            tree.column(col, width=100 if col != 'Actualización' else 150)
-        for moneda in MONEDAS_EXT:
-            tipos = datos.get(moneda, {})
-            compra = f"${tipos['compra'][0]:.2f}" if 'compra' in tipos else "0.00"
-            venta = f"${tipos['venta'][0]:.2f}" if 'venta' in tipos else "0.00"
-            fechas = []
-            if 'compra' in tipos: fechas.append(tipos['compra'][1])
-            if 'venta' in tipos: fechas.append(tipos['venta'][1])
-            ult_act = max(fechas) if fechas else "N/A"
-            tree.insert('', 'end', values=(moneda, compra, venta, ult_act))
+            tree.column(col, width=120 if col != 'Actualización' else 150)
+        for par, info in datos.items():
+            compra = f"{info['cotizacion']} {info['compra']:.2f}" if info['compra'] else "—"
+            venta = f"{info['cotizacion']} {info['venta']:.2f}" if info['venta'] else "—"
+            tree.insert('', 'end', values=(par, compra, venta, info['fecha']))
+        tree.pack(fill='both', expand=True)
+
+    def actualizar_historial_cotizaciones(self, frame):
+        for w in frame.winfo_children():
+            w.destroy()
+        historial = get_historial_cotizaciones(limite=100)
+        columnas = ['ID', 'Fecha', 'Par', 'Compra', 'Venta']
+        tree = ttk.Treeview(frame, columns=columnas, show='headings', height=10)
+        tree.heading('ID', text='ID')
+        tree.heading('Fecha', text='Fecha')
+        tree.heading('Par', text='Par')
+        tree.heading('Compra', text='Compra')
+        tree.heading('Venta', text='Venta')
+        tree.column('ID', width=40)
+        tree.column('Fecha', width=150)
+        tree.column('Par', width=100)
+        tree.column('Compra', width=120)
+        tree.column('Venta', width=120)
+
+        for cot in historial:
+            par = f"{cot[2]}/{cot[3]}"
+            compra = f"{cot[3]} {cot[4]:.2f}" if cot[4] else "—"
+            venta = f"{cot[3]} {cot[5]:.2f}" if cot[5] else "—"
+            tree.insert('', 'end', values=(cot[0], cot[1], par, compra, venta))
         tree.pack(fill='both', expand=True)
 
     # ---------- Tabla general de órdenes (limpia) ----------
@@ -139,8 +166,7 @@ class App(tk.Tk):
                 falta = o[7] - o[8]   # calculado - real
                 if falta > 0.001:
                     deuda = f"{o[6]} {falta:.2f}"      # ej. "USD 6.50"
-                elif falta < -0.001:
-                    deuda = f"{o[6]} sobra {-falta:.2f}"
+                
             tree.insert('', 'end', values=(o[0], o[1], o[2], recibido, entregado, deuda, o[11]),
                         tags=(o[11],))
         tree.tag_configure('pendiente', background='#fff3cd')
@@ -504,44 +530,70 @@ class App(tk.Tk):
 
         tk.Button(editor, text="Guardar cambios", command=guardar_cambios).pack(pady=10)
 
-    # ---------- Ventana nueva cotización (sin cambios) ----------
     def abrir_form_cotizacion(self):
         ventana = tk.Toplevel(self)
         ventana.title("Nueva Cotización")
-        ventana.geometry("300x200")
+        ventana.geometry("350x300")
 
-        tk.Label(ventana, text="Moneda:").grid(row=0, column=0, padx=5, pady=5)
-        moneda = ttk.Combobox(ventana, values=MONEDAS_EXT, state='readonly')
-        moneda.grid(row=0, column=1, padx=5, pady=5)
+        tk.Label(ventana, text="Moneda base (de referencia):").grid(row=0, column=0, padx=5, pady=5, sticky='w')
+        base_var = tk.StringVar(value='USD')
+        base_combo = ttk.Combobox(ventana, textvariable=base_var, values=MONEDAS, state='readonly', width=6)
+        base_combo.grid(row=0, column=1, padx=5, pady=5, sticky='w')
 
-        tk.Label(ventana, text="Tipo:").grid(row=1, column=0, padx=5, pady=5)
-        tipo = ttk.Combobox(ventana, values=['compra', 'venta'], state='readonly')
-        tipo.grid(row=1, column=1, padx=5, pady=5)
+        tk.Label(ventana, text="Moneda de cotización:").grid(row=1, column=0, padx=5, pady=5, sticky='w')
+        cot_var = tk.StringVar(value='ARS')
+        cot_combo = ttk.Combobox(ventana, textvariable=cot_var, values=MONEDAS, state='readonly', width=6)
+        cot_combo.grid(row=1, column=1, padx=5, pady=5, sticky='w')
 
-        tk.Label(ventana, text="Precio:").grid(row=2, column=0, padx=5, pady=5)
-        precio = tk.Entry(ventana)
-        precio.grid(row=2, column=1, padx=5, pady=5)
+        tk.Label(ventana, text=f"Compra (cuánto {cot_var.get()} por 1 {base_var.get()}):").grid(row=2, column=0, columnspan=2, padx=5, pady=5)
+        compra_entry = tk.Entry(ventana)
+        compra_entry.grid(row=3, column=0, padx=5, pady=5)
+
+        tk.Label(ventana, text=f"Venta (cuánto {cot_var.get()} por 1 {base_var.get()}):").grid(row=4, column=0, columnspan=2, padx=5, pady=5)
+        venta_entry = tk.Entry(ventana)
+        venta_entry.grid(row=5, column=0, padx=5, pady=5)
+
+        # Actualizar etiquetas al cambiar la moneda de cotización
+        def actualizar_etiquetas(*args):
+            base = base_var.get()
+            cot = cot_var.get()
+            tk.Label(ventana, text=f"Compra (cuánto {cot} por 1 {base}):").grid(row=2, column=0, columnspan=2)
+            tk.Label(ventana, text=f"Venta (cuánto {cot} por 1 {base}):").grid(row=4, column=0, columnspan=2)
+
+        cot_var.trace('w', actualizar_etiquetas)
 
         def guardar():
-            m = moneda.get()
-            t = tipo.get()
-            try:
-                p = float(precio.get())
-            except ValueError:
-                messagebox.showerror("Error", "El precio debe ser un número válido")
+            base = base_var.get()
+            cot = cot_var.get()
+            if base == cot:
+                messagebox.showerror("Error", "Las monedas no pueden ser iguales")
                 return
-            if not m or not t:
-                messagebox.showerror("Error", "Seleccioná moneda y tipo")
+            compra_str = compra_entry.get().strip()
+            venta_str = venta_entry.get().strip()
+            try:
+                compra_val = float(compra_str) if compra_str else 0.0
+                venta_val = float(venta_str) if venta_str else 0.0
+            except ValueError:
+                messagebox.showerror("Error", "Los precios deben ser números válidos")
+                return
+            if compra_val == 0 and venta_val == 0:
+                messagebox.showwarning("Atención", "No se ingresó ningún precio. No se guardó la cotización.")
                 return
 
-            insertar_cotizacion(m, t, p, self.usuario_actual['id'])
-            actualizar_precio_en_todos(m, t, p)
-            messagebox.showinfo("Éxito", f"Cotización {m} {t} guardada.")
+            insertar_cotizacion(base, cot, compra_val, venta_val, self.usuario_actual['id'])
+
+            # Escribir en los Excels (si corresponde) – Nota: el mapeo de celdas ahora deberá adaptarse si se usa
+            """if compra_val != 0:
+                actualizar_precio_en_todos(f"{base}/{cot}", 'compra', compra_val)
+            if venta_val != 0:
+                actualizar_precio_en_todos(f"{base}/{cot}", 'venta', venta_val)
+            """
+            messagebox.showinfo("Éxito", f"Cotización {base}/{cot} guardada.")
             ventana.destroy()
             self.mostrar_panel_admin()
 
-        tk.Button(ventana, text="Guardar", command=guardar).grid(row=3, columnspan=2, pady=15)
-
+        tk.Button(ventana, text="Guardar", command=guardar).grid(row=6, columnspan=2, pady=15)
+        
     # ---------- Utilidades ----------
     def limpiar_ventana(self):
         for widget in self.winfo_children():

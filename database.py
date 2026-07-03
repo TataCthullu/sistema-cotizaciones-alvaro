@@ -18,12 +18,15 @@ def init_db():
         )
     ''')
 
+    # 🔄 Nueva tabla de cotizaciones con pares de monedas
+    
     c.execute('''
         CREATE TABLE IF NOT EXISTS cotizaciones (
             id INTEGER PRIMARY KEY,
-            moneda TEXT NOT NULL,
-            tipo TEXT CHECK(tipo IN ('compra','venta')) NOT NULL,
-            precio REAL NOT NULL,
+            moneda_base TEXT NOT NULL,
+            moneda_cotizacion TEXT NOT NULL,
+            compra REAL DEFAULT 0,
+            venta REAL DEFAULT 0,
             fecha_hora TEXT DEFAULT (datetime('now','localtime')),
             usuario_id INTEGER,
             FOREIGN KEY(usuario_id) REFERENCES usuarios(id)
@@ -85,11 +88,11 @@ def validar_login(nombre, password):
         return {'id': user[0], 'rol': user[1]}
     return None
 
-def insertar_cotizacion(moneda, tipo, precio, usuario_id):
+def insertar_cotizacion(moneda_base, moneda_cotizacion, compra, venta, usuario_id):
     conn = conectar()
     c = conn.cursor()
-    c.execute("INSERT INTO cotizaciones (moneda, tipo, precio, usuario_id) VALUES (?,?,?,?)",
-              (moneda, tipo, precio, usuario_id))
+    c.execute("INSERT INTO cotizaciones (moneda_base, moneda_cotizacion, compra, venta, usuario_id) VALUES (?,?,?,?,?)",
+              (moneda_base, moneda_cotizacion, compra, venta, usuario_id))
     conn.commit()
     conn.close()
 
@@ -97,14 +100,19 @@ def get_ultimas_cotizaciones():
     conn = conectar()
     c = conn.cursor()
     c.execute('''
-        SELECT moneda, tipo, precio, fecha_hora FROM cotizaciones
-        WHERE id IN (SELECT MAX(id) FROM cotizaciones GROUP BY moneda, tipo)
+        SELECT moneda_base, moneda_cotizacion, compra, venta, fecha_hora FROM cotizaciones
+        WHERE id IN (SELECT MAX(id) FROM cotizaciones GROUP BY moneda_base, moneda_cotizacion)
     ''')
     datos = {}
-    for moneda, tipo, precio, fecha in c.fetchall():
-        if moneda not in datos:
-            datos[moneda] = {}
-        datos[moneda][tipo] = (precio, fecha)
+    for base, cot, compra, venta, fecha in c.fetchall():
+        par = f"{base}/{cot}"
+        datos[par] = {
+            'base': base,
+            'cotizacion': cot,
+            'compra': compra,
+            'venta': venta,
+            'fecha': fecha
+        }
     conn.close()
     return datos
 
@@ -170,3 +178,16 @@ def actualizar_reales_orden(id_orden, nuevo_rec_real, nuevo_ent_real, estado=Non
         c.execute("UPDATE ordenes SET estado = ? WHERE id = ?", (estado, id_orden))
     conn.commit()
     conn.close()
+
+def get_historial_cotizaciones(limite=100):
+    conn = conectar()
+    c = conn.cursor()
+    c.execute('''
+        SELECT id, fecha_hora, moneda_base, moneda_cotizacion, compra, venta
+        FROM cotizaciones
+        ORDER BY id DESC
+        LIMIT ?
+    ''', (limite,))
+    historial = c.fetchall()
+    conn.close()
+    return historial

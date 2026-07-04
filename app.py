@@ -50,7 +50,7 @@ class App(tk.Tk):
     def mostrar_panel_admin(self):
         self.limpiar_ventana()
         self.geometry("1000x750")
-        tk.Label(self, text=f"Panel Administrador - {self.usuario_actual['id']}",
+        tk.Label(self, text=f"Panel Administrador",
                  font=('Arial', 14)).pack(pady=5)
 
         # Pestañas de cotizaciones
@@ -122,10 +122,15 @@ class App(tk.Tk):
         frame_ordenes.pack(fill='both', expand=True, padx=10, pady=5)
         self.actualizar_vista_ordenes_general(frame_ordenes)
 
-        btn_frame = tk.Frame(self)
-        btn_frame.pack(pady=10)
-        tk.Button(btn_frame, text="Nueva Cotización", command=self.abrir_form_cotizacion).pack(side='left', padx=5)
-        tk.Button(btn_frame, text="Cerrar sesión", command=self.cerrar_sesion).pack(side='left', padx=5)
+        # Frame superior para Nueva Cotización
+        btn_frame_top = tk.Frame(self)
+        btn_frame_top.pack(pady=(10, 0))
+        tk.Button(btn_frame_top, text="Nueva Cotización", command=self.abrir_form_cotizacion).pack(side='left', padx=5)
+
+        # Frame inferior para Cerrar sesión, anclado abajo a la izquierda
+        btn_frame_bottom = tk.Frame(self)
+        btn_frame_bottom.pack(side='bottom', anchor='w', pady=10, padx=10)
+        tk.Button(btn_frame_bottom, text="Cerrar sesión", command=self.cerrar_sesion).pack()
 
     # ---------- Panel Cajero ----------
     def mostrar_panel_cajero(self):

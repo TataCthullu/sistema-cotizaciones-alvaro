@@ -242,6 +242,13 @@ class App(tk.Tk):
         frame_ref.pack(fill='x', padx=10, pady=5)
         self.actualizar_vista_cotizaciones(frame_ref)
 
+
+
+        # Label grande de tipo de operación (fuera del form_frame)
+        self.lbl_tipo_operacion = tk.Label(ventana, text="VENTA", font=('Arial', 16, 'bold'), fg='green')
+        self.lbl_tipo_operacion.pack(pady=(5, 0))
+
+
         # Formulario
         form_frame = tk.LabelFrame(ventana, text="Nueva operación")
         form_frame.pack(fill='x', padx=10, pady=5)
@@ -249,6 +256,8 @@ class App(tk.Tk):
         # Variables de cálculo
         self.monto_rec_calc = None
         self.monto_ent_calc = None
+
+
 
         # Fila 0: Tipo
         tk.Label(form_frame, text="Tipo:").grid(row=0, column=0, padx=5, pady=5, sticky='w')
@@ -269,7 +278,7 @@ class App(tk.Tk):
         tk.Label(form_frame, text="Cotización:").grid(row=2, column=0, padx=5, pady=5, sticky='w')
         self.cotizacion_entry = tk.Entry(form_frame, width=12)
         self.cotizacion_entry.grid(row=2, column=1, padx=5, pady=5, sticky='w')
-        tk.Button(form_frame, text="Usar sugerida", command=self.usar_cotizacion_sugerida).grid(row=2, column=3, padx=5, pady=5)
+        tk.Button(form_frame, text="Usar sugerida", command=self.usar_cotizacion_sugerida).grid(row=2, column=2, padx=5, pady=5, sticky='w')
 
         # Fila 3: Recibí (cliente da)
         self.lbl_recibido = tk.Label(form_frame, text="Recibí (cliente da ARS):")
@@ -367,12 +376,14 @@ class App(tk.Tk):
         tipo = self.tipo_var.get()
         moneda_ref = self.moneda_ref_var.get()
         if tipo == 'venta':
+            self.lbl_tipo_operacion.config(text="VENTA", fg='green')
             self.lbl_recibido.config(text="Recibí (cliente da ARS):")
             self.moneda_recibida_var.set('ARS')
             self.lbl_deberia.config(text=f"Debería dar (cajero {moneda_ref}):")
             self.lbl_dio.config(text=f"Dio efectivamente (cajero {moneda_ref}):")
             self.moneda_entregada_var.set(moneda_ref)
         else:
+            self.lbl_tipo_operacion.config(text="COMPRA", fg='blue')
             self.lbl_recibido.config(text=f"Recibí (cliente da {moneda_ref}):")
             self.moneda_recibida_var.set(moneda_ref)
             self.lbl_deberia.config(text="Debería dar (cajero ARS):")

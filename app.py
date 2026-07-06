@@ -269,6 +269,7 @@ class App(tk.Tk):
         tk.Label(form_frame, text="Cotización:").grid(row=2, column=0, padx=5, pady=5, sticky='w')
         self.cotizacion_entry = tk.Entry(form_frame, width=12)
         self.cotizacion_entry.grid(row=2, column=1, padx=5, pady=5, sticky='w')
+        tk.Button(form_frame, text="Usar sugerida", command=self.usar_cotizacion_sugerida).grid(row=2, column=3, padx=5, pady=5)
 
         # Fila 3: Recibí (cliente da)
         self.lbl_recibido = tk.Label(form_frame, text="Recibí (cliente da ARS):")
@@ -309,9 +310,18 @@ class App(tk.Tk):
         tk.Checkbutton(form_frame, text="Dejar pendiente", variable=self.pendiente_var).grid(row=8, column=0, columnspan=2, pady=5, sticky='w')
         tk.Button(form_frame, text="Guardar operación", command=lambda: self.guardar_operacion(ventana)).grid(row=8, column=2, columnspan=2, pady=5)
 
-        # ---- Tabla de órdenes de la caja (con doble clic y deuda) ----
+        # ---- Tabla de órdenes de la caja ----
         ordenes_frame = tk.LabelFrame(ventana, text="Operaciones en esta caja (doble clic para editar)")
         ordenes_frame.pack(fill='both', expand=True, padx=10, pady=5)
+
+        filtro_frame = tk.Frame(ordenes_frame)
+        filtro_frame.pack(fill='x', padx=5, pady=5)
+        ventana.solo_pendientes_var = tk.BooleanVar()   # <-- asociado a la ventana
+        tk.Checkbutton(filtro_frame, text="Ver solo pendientes", variable=ventana.solo_pendientes_var,
+                       command=lambda: self.actualizar_tabla_caja(ventana)).pack(side='left')
+
+        # Guardar referencia al filtro para no destruirlo
+        ventana.filtro_frame = filtro_frame
 
         filtro_frame = tk.Frame(ordenes_frame)
         filtro_frame.pack(fill='x', padx=5, pady=5)
@@ -321,6 +331,37 @@ class App(tk.Tk):
 
         self.actualizar_labels()
         self.actualizar_tabla_caja(ventana)
+
+
+    def usar_cotizacion_sugerida(self):
+        tipo = self.tipo_var.get()        # 'compra' o 'venta'
+        moneda = self.moneda_ref_var.get()
+        datos = get_ultimas_cotizaciones()
+        # Buscar par moneda/ARS (ej: 'USD/ARS')
+        par = f"{moneda}/ARS"
+        if par in datos:
+            info = datos[par]
+            cot = info.get(tipo)  # 'compra' o 'venta'
+            if cot is not None and cot != 0:
+                self.cotizacion_entry.delete(0, tk.END)
+                self.cotizacion_entry.insert(0, f"{cot:.2f}")
+            else:
+                messagebox.showwarning("Sin datos", f"No hay cotización de {tipo} para {par}")
+        else:
+            # Intentar al revés: ARS/moneda (no es común pero por si acaso)
+            par = f"ARS/{moneda}"
+            if par in datos:
+                info = datos[par]
+                cot = info.get(tipo)
+                if cot is not None and cot != 0:
+                    self.cotizacion_entry.delete(0, tk.END)
+                    self.cotizacion_entry.insert(0, f"{cot:.2f}")
+                else:
+                    messagebox.showwarning("Sin datos", f"No hay cotización de {tipo} para {par}")
+            else:
+                messagebox.showwarning("Sin datos", "No se encontraron cotizaciones para este par")
+
+
 
     def actualizar_labels(self):
         tipo = self.tipo_var.get()
@@ -450,23 +491,21 @@ class App(tk.Tk):
 
     # ---------- Tabla de caja (con deuda y doble clic) ----------
     def actualizar_tabla_caja(self, ventana):
+        # Encontrar el ordenes_frame (igual que antes)
         for child in ventana.winfo_children():
             if isinstance(child, tk.LabelFrame) and 'Operaciones' in child.cget('text'):
                 ordenes_frame = child
                 break
+        # Destruir todos los widgets excepto el filtro
         for w in ordenes_frame.winfo_children():
-            w.destroy()
+            if w != ventana.filtro_frame:
+                w.destroy()
 
-        filtro_frame = tk.Frame(ordenes_frame)
-        filtro_frame.pack(fill='x', padx=5, pady=5)
-        self.solo_pendientes_var = tk.BooleanVar()
-        tk.Checkbutton(filtro_frame, text="Ver solo pendientes", variable=self.solo_pendientes_var,
-                       command=lambda: self.actualizar_tabla_caja(ventana)).pack(side='left')
-
-        solo_pend = self.solo_pendientes_var.get()
+        # Leer el estado del filtro desde la ventana
+        solo_pend = ventana.solo_pendientes_var.get()
         ordenes = get_ordenes_por_caja(caja_id=ventana.caja_id, limite=50, solo_pendientes=solo_pend)
 
-        columnas = ['ID', 'Fecha', 'Tipo', 'Recibido', 'Entregado', 'Deuda', 'Estado']
+        columnas = ['ID', 'Fecha', 'Tipo', 'Recibido', 'Entregado', 'Deuda', 'Estado', 'Cliente']
         tree = ttk.Treeview(ordenes_frame, columns=columnas, show='headings', height=10)
         tree.heading('ID', text='ID')
         tree.heading('Fecha', text='Fecha')
@@ -475,6 +514,7 @@ class App(tk.Tk):
         tree.heading('Entregado', text='Entregado')
         tree.heading('Deuda', text='Deuda')
         tree.heading('Estado', text='Estado')
+        tree.heading('Cliente', text='Cliente')
         tree.column('ID', width=40)
         tree.column('Fecha', width=120)
         tree.column('Tipo', width=60)
@@ -482,6 +522,7 @@ class App(tk.Tk):
         tree.column('Entregado', width=140)
         tree.column('Deuda', width=80)
         tree.column('Estado', width=80)
+        tree.column('Cliente', width=120)
 
         for o in ordenes:
             recibido = f"{o[3]} {o[5]:.2f}" if o[5] is not None else f"{o[3]} 0.00"
@@ -495,7 +536,7 @@ class App(tk.Tk):
                     deuda = f"{o[6]} sobra {-falta:.2f}"
                 elif falta < -0.001:
                     deuda = f"sobra {-falta:.2f}"
-            tree.insert('', 'end', values=(o[0], o[1], o[2], recibido, entregado, deuda, o[11]),
+            tree.insert('', 'end', values=(o[0], o[1], o[2], recibido, entregado, deuda, o[11], o[10] or ""),
                         tags=(o[11],))
         tree.tag_configure('pendiente', background='#fff3cd')  # amarillo claro
         tree.tag_configure('completada', background='#d4edda')  # verde claro

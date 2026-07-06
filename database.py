@@ -197,3 +197,21 @@ def get_historial_cotizaciones(limite=100):
     historial = c.fetchall()
     conn.close()
     return historial
+
+def realizar_entrega_parcial(id_orden, monto_adicional):
+    """Suma monto_adicional al monto_entregado_real. Si la deuda queda en 0, marca como completada."""
+    conn = conectar()
+    c = conn.cursor()
+    c.execute("SELECT monto_entregado_real, monto_entregado_calc FROM ordenes WHERE id=?", (id_orden,))
+    row = c.fetchone()
+    if not row:
+        conn.close()
+        return False
+    real_actual, calculado = row
+    nuevo_real = real_actual + monto_adicional
+    estado = 'completada' if abs(calculado - nuevo_real) < 0.001 else 'pendiente'
+    c.execute("UPDATE ordenes SET monto_entregado_real = ?, estado = ? WHERE id = ?",
+              (nuevo_real, estado, id_orden))
+    conn.commit()
+    conn.close()
+    return True

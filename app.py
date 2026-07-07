@@ -197,7 +197,7 @@ class App(tk.Tk):
         tipo_op = self.filtro_tipo.get() if self.filtro_tipo.get() else None
         estado = self.filtro_estado.get() if self.filtro_estado.get() else None
         ordenes = get_ordenes_por_caja(caja_id=caja_id, limite=50, tipo_operacion=tipo_op, estado=estado)
-        columnas = ['ID', 'Fecha', 'Tipo', 'Recibido', 'Entregado', 'Deuda', 'Estado']
+        columnas = ['ID', 'Fecha', 'Tipo', 'Recibido', 'Entregado', 'Deuda', 'Estado', 'Cliente']
         tree = ttk.Treeview(frame, columns=columnas, show='headings', height=10)
         tree.heading('ID', text='ID')
         tree.heading('Fecha', text='Fecha')
@@ -206,6 +206,7 @@ class App(tk.Tk):
         tree.heading('Entregado', text='Entregado')
         tree.heading('Deuda', text='Deuda')
         tree.heading('Estado', text='Estado')
+        tree.heading('Cliente', text='Cliente')
         tree.column('ID', width=40)
         tree.column('Fecha', width=120)
         tree.column('Tipo', width=60)
@@ -213,6 +214,7 @@ class App(tk.Tk):
         tree.column('Entregado', width=140)
         tree.column('Deuda', width=100)
         tree.column('Estado', width=80)
+        tree.column('Cliente', width=120)
 
         for o in ordenes:
             recibido = f"{o[3]} {o[5]:.2f}" if o[5] is not None else f"{o[3]} 0.00"
@@ -224,7 +226,7 @@ class App(tk.Tk):
                 if falta > 0.001:
                     deuda = f"{o[6]} {falta:.2f}"      # ej. "USD 6.50"
                 
-            tree.insert('', 'end', values=(o[0], o[1], o[2], recibido, entregado, deuda, o[11]),
+            tree.insert('', 'end', values=(o[0], o[1], o[2], recibido, entregado, deuda, o[11], o[10] or ""),
                         tags=(o[11],))
         tree.tag_configure('pendiente', background='#fff3cd')
         tree.tag_configure('completada', background='#d4edda')

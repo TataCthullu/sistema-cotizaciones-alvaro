@@ -237,7 +237,7 @@ class App(tk.Tk):
         ventana.geometry("900x700")
         ventana.caja_id = caja_id
 
-        tk.Label(ventana, text=f"{caja_nombre} - Cotizaciones de referencia", font=('Arial', 12)).pack(pady=5)
+        tk.Label(ventana, text=f"{caja_nombre}", font=('Arial', 12)).pack(pady=5)
         frame_ref = tk.LabelFrame(ventana, text="Cotizaciones")
         frame_ref.pack(fill='x', padx=10, pady=5)
         self.actualizar_vista_cotizaciones(frame_ref)
@@ -422,7 +422,7 @@ class App(tk.Tk):
         if self.monto_deberia_var.get():
             self.monto_dio_entry.delete(0, tk.END)
             self.monto_dio_entry.insert(0, self.monto_deberia_var.get())
-            self.actualizar_diferencia()
+            self.lbl_diferencia.config(text="")   # limpia el mensaje de diferencia
 
     def actualizar_diferencia(self):
         if self.monto_ent_calc is None:

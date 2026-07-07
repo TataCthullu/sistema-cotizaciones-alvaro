@@ -483,7 +483,8 @@ class App(tk.Tk):
         insertar_orden(tipo, moneda_recibida, monto_rec, monto_rec,
                        moneda_entregada, self.monto_ent_calc, monto_dio,
                        cot, cliente, estado, ventana.caja_id, self.usuario_actual['id'])
-        messagebox.showinfo("Éxito", "Operación registrada.")
+        
+        messagebox.showinfo("Éxito", "Operación registrada.", parent=ventana)
 
         # Limpiar formulario
         self.cotizacion_entry.delete(0, tk.END)

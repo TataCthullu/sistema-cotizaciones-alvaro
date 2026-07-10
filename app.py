@@ -233,12 +233,12 @@ class App(tk.Tk):
         tree.pack(fill='both', expand=True)
 
     # ---------- Ventana de Caja ----------
-    def abrir_caja(self, caja_id, caja_nombre):
+    def abrir_caja(self, caja_id, caja_nombre, modo_cajero=False):
         ventana = tk.Toplevel(self)
         ventana.title(f"{caja_nombre} - Operación")
         ventana.geometry("900x700")
         ventana.caja_id = caja_id
-
+        self.tipo_var = tk.StringVar(value='venta')
         tk.Label(ventana, text=f"{caja_nombre}", font=('Arial', 12)).pack(pady=5)
         frame_ref = tk.LabelFrame(ventana, text="Cotizaciones")
         frame_ref.pack(fill='x', padx=10, pady=5)
@@ -261,12 +261,20 @@ class App(tk.Tk):
 
 
 
-        # Fila 0: Tipo
+        # Fila 0: Tipo (Botones Compra / Venta)
         tk.Label(form_frame, text="Tipo:").grid(row=0, column=0, padx=5, pady=5, sticky='w')
-        self.tipo_var = tk.StringVar(value='venta')
-        ttk.Combobox(form_frame, textvariable=self.tipo_var, values=['compra', 'venta'],
-                     state='readonly', width=10).grid(row=0, column=1, padx=5, pady=5, sticky='w')
-        self.tipo_var.trace('w', lambda *a: self.actualizar_labels())
+        tipo_frame = tk.Frame(form_frame)
+        tipo_frame.grid(row=0, column=1, columnspan=2, padx=5, pady=5, sticky='w')
+        
+        self.btn_venta = tk.Button(tipo_frame, text="VENTA", font=('Arial', 10, 'bold'), 
+                                   bg='#e6ffe6', fg='green', width=10,
+                                   command=self.seleccionar_venta)
+        self.btn_venta.pack(side='left', padx=12)
+        
+        self.btn_compra = tk.Button(tipo_frame, text="COMPRA", font=('Arial', 10), 
+                                    bg='#f0f0f0', fg='black', width=10,
+                                    command=self.seleccionar_compra)
+        self.btn_compra.pack(side='left', padx=12)
 
         # Fila 1: Moneda
         tk.Label(form_frame, text="Moneda:").grid(row=1, column=0, padx=5, pady=5, sticky='w')
@@ -327,21 +335,28 @@ class App(tk.Tk):
 
         filtro_frame = tk.Frame(ordenes_frame)
         filtro_frame.pack(fill='x', padx=5, pady=5)
-        ventana.solo_pendientes_var = tk.BooleanVar()   # <-- asociado a la ventana
+        ventana.solo_pendientes_var = tk.BooleanVar()
         tk.Checkbutton(filtro_frame, text="Ver solo pendientes", variable=ventana.solo_pendientes_var,
                        command=lambda: self.actualizar_tabla_caja(ventana)).pack(side='left')
-
-        # Guardar referencia al filtro para no destruirlo
         ventana.filtro_frame = filtro_frame
 
-        filtro_frame = tk.Frame(ordenes_frame)
-        filtro_frame.pack(fill='x', padx=5, pady=5)
-        self.solo_pendientes_var = tk.BooleanVar()
-        tk.Checkbutton(filtro_frame, text="Ver solo pendientes", variable=self.solo_pendientes_var,
-                       command=lambda: self.actualizar_tabla_caja(ventana)).pack(side='left')
+
 
         self.actualizar_labels()
         self.actualizar_tabla_caja(ventana)
+
+
+    def seleccionar_venta(self):
+        self.tipo_var.set('venta')
+        self.btn_venta.config(bg='#e6ffe6', fg='green', font=('Arial', 10, 'bold'))
+        self.btn_compra.config(bg='#f0f0f0', fg='black', font=('Arial', 10))
+        self.actualizar_labels()
+    
+    def seleccionar_compra(self):
+        self.tipo_var.set('compra')
+        self.btn_compra.config(bg='#e6f0ff', fg='blue', font=('Arial', 10, 'bold'))
+        self.btn_venta.config(bg='#f0f0f0', fg='black', font=('Arial', 10))
+        self.actualizar_labels()
 
 
     def usar_cotizacion_sugerida(self):

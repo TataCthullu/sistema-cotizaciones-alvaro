@@ -236,7 +236,7 @@ class App(tk.Tk):
     def abrir_caja(self, caja_id, caja_nombre, modo_cajero=False):
         ventana = tk.Toplevel(self)
         ventana.title(f"{caja_nombre} - Operación")
-        ventana.geometry("900x700")
+        ventana.geometry("900x850")
         ventana.caja_id = caja_id
         self.tipo_var = tk.StringVar(value='venta')
         tk.Label(ventana, text=f"{caja_nombre}", font=('Arial', 12)).pack(pady=5)

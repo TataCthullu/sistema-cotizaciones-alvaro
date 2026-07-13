@@ -335,21 +335,25 @@ class CajaApp(tk.Tk):
         solo_pend = self.solo_pendientes_var.get()
         ordenes = get_ordenes_por_caja(caja_id=self.caja_id, limite=50, solo_pendientes=solo_pend)
 
-        columnas = ['ID', 'Fecha', 'Tipo', 'Recibido', 'Entregado', 'Deuda', 'Estado', 'Cliente']
+        columnas = ['ID', 'Fecha', 'Tipo', 'Recibido', 'Entregado', 'Cotización', 'Deuda', 'Estado', 'Cliente']
         tree = ttk.Treeview(ordenes_frame, columns=columnas, show='headings', height=10)
+        
         tree.heading('ID', text='ID')
         tree.heading('Fecha', text='Fecha')
         tree.heading('Tipo', text='Tipo')
         tree.heading('Recibido', text='Recibido')
         tree.heading('Entregado', text='Entregado')
+        tree.heading('Cotización', text='Cotización')
         tree.heading('Deuda', text='Deuda')
         tree.heading('Estado', text='Estado')
         tree.heading('Cliente', text='Cliente')
+
         tree.column('ID', width=40)
         tree.column('Fecha', width=120)
         tree.column('Tipo', width=60)
         tree.column('Recibido', width=140)
         tree.column('Entregado', width=140)
+        tree.column('Cotización', width=80)
         tree.column('Deuda', width=80)
         tree.column('Estado', width=80)
         tree.column('Cliente', width=120)
@@ -364,8 +368,8 @@ class CajaApp(tk.Tk):
                     deuda = f"{o[6]} {falta:.2f}"
                 elif falta < -0.001:
                     deuda = f"{o[6]} sobra {-falta:.2f}"
-            tree.insert('', 'end', values=(o[0], o[1], o[2], recibido, entregado, deuda, o[11], o[10] or ""),
-                        tags=(o[11],))
+            tree.insert('', 'end', values=(o[0], o[1], o[2], recibido, entregado, f"{o[9]:.2f}" if o[9] else "—", deuda, o[11], o[10] or ""), tags=(o[11],))
+            
         tree.tag_configure('pendiente', background='#fff3cd')
         tree.tag_configure('completada', background='#d4edda')
         tree.pack(fill='both', expand=True)

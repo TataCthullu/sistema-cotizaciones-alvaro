@@ -11,13 +11,15 @@ MONEDAS_EXT = [m for m in MONEDAS if m != "ARS"]
 class AdminApp(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("Sistema de Cotizaciones - Admin")
+        self.title("Panel Admin")
         self.geometry("1000x750")
         self.usuario_actual = None
         # Filtros del admin
         self.filtro_caja_id = tk.IntVar(value=0)  # 0 = todas
         self.filtro_tipo = tk.StringVar(value='')
         self.filtro_estado = tk.StringVar(value='')
+        
+        self.filtro_cliente_var = tk.StringVar(value='')
         self.mostrar_login()
 
     # ---------- Login ----------
@@ -104,6 +106,14 @@ class AdminApp(tk.Tk):
             btn.pack(side='left', padx=2)
             self.botones_estado_filtro.append(btn)
 
+
+        # Filtro por cliente
+        tk.Label(filtros_frame, text="Cliente:").pack(side='left', padx=5)
+        entry_cliente = tk.Entry(filtros_frame, textvariable=self.filtro_cliente_var, width=15)
+        self.filtro_cliente_var.trace('w', lambda *args: self.actualizar_ordenes_filtradas())
+        entry_cliente.pack(side='left', padx=2)
+
+
         # Tabla de órdenes
         frame_ordenes = tk.LabelFrame(self, text="Todas las órdenes")
         frame_ordenes.pack(fill='both', expand=True, padx=10, pady=5)
@@ -167,6 +177,12 @@ class AdminApp(tk.Tk):
         tipo_op = self.filtro_tipo.get() if self.filtro_tipo.get() else None
         estado = self.filtro_estado.get() if self.filtro_estado.get() else None
         ordenes = get_ordenes_por_caja(caja_id=caja_id, limite=50, tipo_operacion=tipo_op, estado=estado)
+        
+        # Filtrar por cliente si hay texto
+        texto_cliente = self.filtro_cliente_var.get().strip().lower()
+        if texto_cliente:
+            ordenes = [o for o in ordenes if o[10] and texto_cliente in o[10].lower()]
+        
         columnas = ['ID', 'Fecha', 'Tipo', 'Recibido', 'Entregado', 'Cotización', 'Deuda', 'Estado', 'Cliente']
         tree = ttk.Treeview(frame, columns=columnas, show='headings', height=10)
         tree.heading('ID', text='ID')
@@ -197,7 +213,7 @@ class AdminApp(tk.Tk):
                 if falta > 0.001:
                     deuda = f"{o[6]} {falta:.2f}"
             tree.insert('', 'end', values=(o[0], o[1], o[2], recibido, entregado, f"{o[9]:.2f}" if o[9] else "—", deuda, o[11], o[10] or ""), tags=(o[11],))
-            
+
         tree.tag_configure('pendiente', background='#fff3cd')
         tree.tag_configure('completada', background='#d4edda')
         tree.pack(fill='both', expand=True)

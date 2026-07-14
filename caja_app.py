@@ -250,7 +250,7 @@ class CajaApp(tk.Tk):
             self.lbl_diferencia.config(text="")
             return
         dif = dio - self.monto_ent_calc
-        if abs(dif) > 0.001:
+        if abs(dif) > 0.009:
             self.lbl_diferencia.config(text=f"Diferencia: {formato_argentino(dif)} (faltante si es negativo)")
         else:
             self.lbl_diferencia.config(text="")

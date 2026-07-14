@@ -5,6 +5,7 @@ from database import (
     get_ordenes_por_caja, get_cajas, get_historial_cotizaciones
 )
 from numerical_entry import EntryNumerico
+from formato_argentino import formato_argentino
 from config import MONEDAS
 
 MONEDAS_EXT = [m for m in MONEDAS if m != "ARS"]
@@ -141,8 +142,9 @@ class AdminApp(tk.Tk):
             tree.heading(col, text=col)
             tree.column(col, width=120 if col != 'Actualización' else 150)
         for par, info in datos.items():
-            compra = f"{info['cotizacion']} {info['compra']:.2f}" if info['compra'] else "—"
-            venta = f"{info['cotizacion']} {info['venta']:.2f}" if info['venta'] else "—"
+            compra = f"{info['cotizacion']} {formato_argentino(info['compra'])}" if info['compra'] else "—"
+            venta = f"{info['cotizacion']} {formato_argentino(info['venta'])}" if info['venta'] else "—"
+
             tree.insert('', 'end', values=(par, compra, venta, info['fecha']))
         tree.pack(fill='both', expand=True)
 
@@ -165,8 +167,8 @@ class AdminApp(tk.Tk):
 
         for cot in historial:
             par = f"{cot[2]}/{cot[3]}"
-            compra = f"{cot[3]} {cot[4]:.2f}" if cot[4] else "—"
-            venta = f"{cot[3]} {cot[5]:.2f}" if cot[5] else "—"
+            compra = f"{cot[3]} {formato_argentino(cot[4])}" if cot[4] else "—"
+            venta = f"{cot[3]} {formato_argentino(cot[5])}" if cot[5] else "—"
             tree.insert('', 'end', values=(cot[0], cot[1], par, compra, venta))
         tree.pack(fill='both', expand=True)
 
@@ -206,14 +208,17 @@ class AdminApp(tk.Tk):
         tree.column('Cliente', width=120)
 
         for o in ordenes:
-            recibido = f"{o[3]} {o[5]:.2f}" if o[5] is not None else f"{o[3]} 0.00"
-            entregado = f"{o[6]} {o[8]:.2f}" if o[8] is not None else f"{o[6]} 0.00"
+            recibido = f"{o[3]} {formato_argentino(o[5])}" if o[5] is not None else f"{o[3]} 0"
+            entregado = f"{o[6]} {formato_argentino(o[8])}" if o[8] is not None else f"{o[6]} 0"
             deuda = ""
             if o[11] == 'pendiente' and o[7] is not None and o[8] is not None:
                 falta = o[7] - o[8]
                 if falta > 0.001:
-                    deuda = f"{o[6]} {falta:.2f}"
-            tree.insert('', 'end', values=(o[0], o[1], o[2], recibido, entregado, f"{o[9]:.2f}" if o[9] else "—", deuda, o[11], o[10] or ""), tags=(o[11],))
+                    deuda = f"{o[6]} {formato_argentino(falta)}"
+                elif falta < -0.001:
+                    deuda = f"{o[6]} sobra {formato_argentino(-falta)}"
+            cot_str = formato_argentino(o[9]) if o[9] else "—"
+            tree.insert('', 'end', values=(o[0], o[1], o[2], recibido, entregado, cot_str, deuda, o[11], o[10] or ""), tags=(o[11],))
 
         tree.tag_configure('pendiente', background='#fff3cd')
         tree.tag_configure('completada', background='#d4edda')
@@ -280,11 +285,11 @@ class AdminApp(tk.Tk):
         cot_combo.grid(row=1, column=1, padx=5, pady=5, sticky='w')
 
         tk.Label(ventana, text=f"Compra (cuánto {cot_var.get()} por 1 {base_var.get()}):").grid(row=2, column=0, columnspan=2, padx=5, pady=5)
-        compra_entry = tk.Entry(ventana)
+        compra_entry = EntryNumerico(ventana)
         compra_entry.grid(row=3, column=0, padx=5, pady=5)
 
         tk.Label(ventana, text=f"Venta (cuánto {cot_var.get()} por 1 {base_var.get()}):").grid(row=4, column=0, columnspan=2, padx=5, pady=5)
-        venta_entry = tk.Entry(ventana)
+        venta_entry = EntryNumerico(ventana)
         venta_entry.grid(row=5, column=0, padx=5, pady=5)
 
         def actualizar_etiquetas(*args):
@@ -301,14 +306,13 @@ class AdminApp(tk.Tk):
             if base == cot:
                 messagebox.showerror("Error", "Las monedas no pueden ser iguales")
                 return
-            compra_str = compra_entry.get().strip()
-            venta_str = venta_entry.get().strip()
-            try:
-                compra_val = float(compra_str) if compra_str else 0.0
-                venta_val = float(venta_str) if venta_str else 0.0
-            except ValueError:
-                messagebox.showerror("Error", "Los precios deben ser números válidos")
-                return
+            compra_val = compra_entry.get_value()
+            venta_val = venta_entry.get_value()
+            if compra_val == 0.0 and compra_entry.get().strip() == "":
+                compra_val = 0.0
+            if venta_val == 0.0 and venta_entry.get().strip() == "":
+                venta_val = 0.0
+                
             if compra_val == 0 and venta_val == 0:
                 messagebox.showwarning("Atención", "No se ingresó ningún precio. No se guardó la cotización.")
                 return

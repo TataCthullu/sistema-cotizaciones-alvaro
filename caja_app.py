@@ -5,6 +5,7 @@ from database import (
     insertar_orden, get_ordenes_por_caja, get_cajas, actualizar_reales_orden
 )
 from numerical_entry import EntryNumerico
+from formato_argentino import formato_argentino
 from config import MONEDAS
 
 MONEDAS_EXT = [m for m in MONEDAS if m != "ARS"]
@@ -230,14 +231,14 @@ class CajaApp(tk.Tk):
             monto_deberia = monto_rec / cot
         else:
             monto_deberia = monto_rec * cot
-        self.monto_deberia_var.set(f"{monto_deberia:.2f}")
+        self.monto_deberia_var.set(formato_argentino(monto_deberia, 6))
         self.monto_rec_calc = monto_rec
         self.monto_ent_calc = monto_deberia
         self.lbl_diferencia.config(text="")
 
     def usar_calculado(self):
-        if self.monto_deberia_var.get():
-            self.monto_dio_entry.set_value(float(self.monto_deberia_var.get()))
+        if self.monto_ent_calc is not None:
+            self.monto_dio_entry.set_value(self.monto_ent_calc, 6)
             self.lbl_diferencia.config(text="")
 
     def actualizar_diferencia(self):
@@ -250,7 +251,7 @@ class CajaApp(tk.Tk):
             return
         dif = dio - self.monto_ent_calc
         if abs(dif) > 0.001:
-            self.lbl_diferencia.config(text=f"Diferencia: {dif:.2f} (faltante si es negativo)")
+            self.lbl_diferencia.config(text=f"Diferencia: {formato_argentino(dif)} (faltante si es negativo)")
         else:
             self.lbl_diferencia.config(text="")
 
@@ -346,17 +347,18 @@ class CajaApp(tk.Tk):
         tree.column('Cliente', width=120)
 
         for o in ordenes:
-            recibido = f"{o[3]} {o[5]:.2f}" if o[5] is not None else f"{o[3]} 0.00"
-            entregado = f"{o[6]} {o[8]:.2f}" if o[8] is not None else f"{o[6]} 0.00"
+            recibido = f"{o[3]} {formato_argentino(o[5])}" if o[5] is not None else f"{o[3]} 0"
+            entregado = f"{o[6]} {formato_argentino(o[8])}" if o[8] is not None else f"{o[6]} 0"
             deuda = ""
             if o[11] == 'pendiente' and o[7] is not None and o[8] is not None:
                 falta = o[7] - o[8]
                 if falta > 0.001:
-                    deuda = f"{o[6]} {falta:.2f}"
+                    deuda = f"{o[6]} {formato_argentino(falta)}"
                 elif falta < -0.001:
-                    deuda = f"{o[6]} sobra {-falta:.2f}"
-            cot_str = f"{o[9]:.2f}".rstrip('0').rstrip('.') if o[9] else "—"
+                    deuda = f"{o[6]} sobra {formato_argentino(-falta)}"
+            cot_str = formato_argentino(o[9]) if o[9] else "—"
             tree.insert('', 'end', values=(o[0], o[1], o[2], recibido, entregado, cot_str, deuda, o[11], o[10] or ""), tags=(o[11],))
+
             
         tree.tag_configure('pendiente', background='#fff3cd')
         tree.tag_configure('completada', background='#d4edda')
@@ -526,8 +528,8 @@ class CajaApp(tk.Tk):
             tree.heading(col, text=col)
             tree.column(col, width=120 if col != 'Actualización' else 150)
         for par, info in datos.items():
-            compra = f"{info['cotizacion']} {info['compra']:.2f}" if info['compra'] else "—"
-            venta = f"{info['cotizacion']} {info['venta']:.2f}" if info['venta'] else "—"
+            compra = f"{info['cotizacion']} {formato_argentino(info['compra'])}" if info['compra'] else "—"
+            venta = f"{info['cotizacion']} {formato_argentino(info['venta'])}" if info['venta'] else "—"
             tree.insert('', 'end', values=(par, compra, venta, info['fecha']))
         tree.pack(fill='both', expand=True)
 

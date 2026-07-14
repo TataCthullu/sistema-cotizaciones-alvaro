@@ -1,12 +1,12 @@
 import tkinter as tk
+from formato_argentino import formato_argentino
 
 class EntryNumerico(tk.Entry):
-    """Entry que acepta comas y puntos, y devuelve float."""
-
-    def __init__(self, parent, **kwargs):
-        super().__init__(parent, **kwargs)
+    def __init__(self, master=None, **kwargs):
+        super().__init__(master, **kwargs)
         vcmd = (self.register(self._validar), '%P')
         self.config(validate='key', validatecommand=vcmd)
+        self.bind('<FocusOut>', self._formatear)
 
     def _validar(self, texto):
         if texto == "":
@@ -16,19 +16,28 @@ class EntryNumerico(tk.Entry):
                 return False
         return True
 
+    def _formatear(self, event=None):
+        raw = self.get().strip()
+        if not raw:
+            return
+        temp = raw.replace('.', '').replace(',', '.')
+        try:
+            value = float(temp)
+        except ValueError:
+            return
+        self.delete(0, tk.END)
+        self.insert(0, formato_argentino(value))
+
     def get_value(self):
-        """Devuelve el valor como float, interpretando comas como decimales."""
         texto = self.get().strip()
         if not texto:
             return 0.0
-        # Quitar puntos de miles y cambiar coma decimal por punto
         texto = texto.replace('.', '').replace(',', '.')
         try:
             return float(texto)
         except ValueError:
             return 0.0
 
-    def set_value(self, value):
-        """Coloca un número, mostrándolo con punto decimal."""
+    def set_value(self, value, decimales=2):
         self.delete(0, tk.END)
-        self.insert(0, str(value))
+        self.insert(0, formato_argentino(value, decimales))

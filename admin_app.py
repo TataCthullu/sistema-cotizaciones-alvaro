@@ -4,6 +4,7 @@ from database import (
     init_db, validar_login, insertar_cotizacion, get_ultimas_cotizaciones,
     get_ordenes_por_caja, get_cajas, get_historial_cotizaciones
 )
+from numerical_entry import EntryNumerico
 from config import MONEDAS
 
 MONEDAS_EXT = [m for m in MONEDAS if m != "ARS"]

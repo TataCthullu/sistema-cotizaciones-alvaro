@@ -4,6 +4,7 @@ from database import (
     init_db, validar_login, get_ultimas_cotizaciones,
     insertar_orden, get_ordenes_por_caja, get_cajas, actualizar_reales_orden
 )
+from numerical_entry import EntryNumerico
 from config import MONEDAS
 
 MONEDAS_EXT = [m for m in MONEDAS if m != "ARS"]
@@ -99,7 +100,7 @@ class CajaApp(tk.Tk):
 
         # Fila 2: Cotización
         tk.Label(form_frame, text="Cotización:").grid(row=2, column=0, padx=5, pady=5, sticky='w')
-        self.cotizacion_entry = tk.Entry(form_frame, width=12)
+        self.cotizacion_entry = EntryNumerico(form_frame, width=12)
         self.cotizacion_entry.grid(row=2, column=1, padx=5, pady=5, sticky='w')
         tk.Button(form_frame, text="Usar sugerida", command=self.usar_cotizacion_sugerida).grid(row=2, column=2, padx=5, pady=5, sticky='w')
 
@@ -108,7 +109,7 @@ class CajaApp(tk.Tk):
         self.lbl_recibido.grid(row=3, column=0, padx=5, pady=5, sticky='w')
         self.moneda_recibida_var = tk.StringVar(value='ARS')
         tk.Label(form_frame, textvariable=self.moneda_recibida_var, width=6).grid(row=3, column=1, padx=5, pady=5)
-        self.monto_recibido_entry = tk.Entry(form_frame, width=12)
+        self.monto_recibido_entry = EntryNumerico(form_frame, width=12)
         self.monto_recibido_entry.grid(row=3, column=2, padx=5, pady=5)
 
         # Fila 4: Debería dar (cajero) – calculado
@@ -124,7 +125,7 @@ class CajaApp(tk.Tk):
         self.lbl_dio = tk.Label(form_frame, text="Dio efectivamente (cajero USD):")
         self.lbl_dio.grid(row=5, column=0, padx=5, pady=5, sticky='w')
         tk.Label(form_frame, textvariable=self.moneda_entregada_var, width=6).grid(row=5, column=1, padx=5, pady=5)
-        self.monto_dio_entry = tk.Entry(form_frame, width=12)
+        self.monto_dio_entry = EntryNumerico(form_frame, width=12)
         self.monto_dio_entry.grid(row=5, column=2, padx=5, pady=5)
         tk.Button(form_frame, text="Usar calculado", command=self.usar_calculado).grid(row=5, column=3, padx=5, pady=5)
 
@@ -180,8 +181,7 @@ class CajaApp(tk.Tk):
             info = datos[par]
             cot = info.get(tipo)
             if cot is not None and cot != 0:
-                self.cotizacion_entry.delete(0, tk.END)
-                self.cotizacion_entry.insert(0, f"{cot:.2f}")
+                self.cotizacion_entry.set_value(cot)
             else:
                 messagebox.showwarning("Sin datos", f"No hay cotización de {tipo} para {par}")
         else:
@@ -190,8 +190,7 @@ class CajaApp(tk.Tk):
                 info = datos[par]
                 cot = info.get(tipo)
                 if cot is not None and cot != 0:
-                    self.cotizacion_entry.delete(0, tk.END)
-                    self.cotizacion_entry.insert(0, f"{cot:.2f}")
+                    self.cotizacion_entry.set_value(cot)
                 else:
                     messagebox.showwarning("Sin datos", f"No hay cotización de {tipo} para {par}")
             else:
@@ -216,20 +215,16 @@ class CajaApp(tk.Tk):
             self.moneda_entregada_var.set('ARS')
 
     def calcular_deberia(self):
-        try:
-            cot = float(self.cotizacion_entry.get())
-        except ValueError:
+        
+
+        cot = self.cotizacion_entry.get_value()
+        if cot <= 0:
             messagebox.showerror("Error", "Ingresá una cotización válida")
             return
         tipo = self.tipo_var.get()
-        monto_rec_str = self.monto_recibido_entry.get().strip()
-        if not monto_rec_str:
+        monto_rec = self.monto_recibido_entry.get_value()
+        if monto_rec <= 0:
             messagebox.showwarning("Atención", "Ingresá el monto que dio el cliente")
-            return
-        try:
-            monto_rec = float(monto_rec_str)
-        except ValueError:
-            messagebox.showerror("Error", "Monto recibido inválido")
             return
         if tipo == 'venta':
             monto_deberia = monto_rec / cot
@@ -242,51 +237,43 @@ class CajaApp(tk.Tk):
 
     def usar_calculado(self):
         if self.monto_deberia_var.get():
-            self.monto_dio_entry.delete(0, tk.END)
-            self.monto_dio_entry.insert(0, self.monto_deberia_var.get())
+            self.monto_dio_entry.set_value(float(self.monto_deberia_var.get()))
             self.lbl_diferencia.config(text="")
 
     def actualizar_diferencia(self):
         if self.monto_ent_calc is None:
             return
-        dio_str = self.monto_dio_entry.get().strip()
-        if not dio_str:
+        
+        dio = self.monto_dio_entry.get_value()
+        if dio == 0.0 and self.monto_dio_entry.get().strip() == "":
             self.lbl_diferencia.config(text="")
             return
-        try:
-            dio = float(dio_str)
-            dif = dio - self.monto_ent_calc
-            if abs(dif) > 0.001:
-                self.lbl_diferencia.config(text=f"Diferencia: {dif:.2f} (faltante si es negativo)")
-            else:
-                self.lbl_diferencia.config(text="")
-        except ValueError:
-            pass
+        dif = dio - self.monto_ent_calc
+        if abs(dif) > 0.001:
+            self.lbl_diferencia.config(text=f"Diferencia: {dif:.2f} (faltante si es negativo)")
+        else:
+            self.lbl_diferencia.config(text="")
 
     def guardar_operacion(self):
+
+
         tipo = self.tipo_var.get()
         moneda_ref = self.moneda_ref_var.get()
-        try:
-            monto_rec = float(self.monto_recibido_entry.get())
-        except ValueError:
+        monto_rec = self.monto_recibido_entry.get_value()
+        if monto_rec <= 0:
             messagebox.showerror("Error", "Completá el monto recibido")
             return
         if self.monto_ent_calc is None:
             messagebox.showerror("Error", "Primero presioná 'Calcular'")
             return
-        dio_str = self.monto_dio_entry.get().strip()
-        if not dio_str:
+        
+        monto_dio = self.monto_dio_entry.get_value()
+        if monto_dio == 0.0 and self.monto_dio_entry.get().strip() == "":
             messagebox.showerror("Error", "Ingresá cuánto diste efectivamente")
             return
-        try:
-            monto_dio = float(dio_str)
-        except ValueError:
-            messagebox.showerror("Error", "Monto entregado inválido")
-            return
-        cot_str = self.cotizacion_entry.get().strip()
-        try:
-            cot = float(cot_str) if cot_str else 0.0
-        except ValueError:
+        
+        cot = self.cotizacion_entry.get_value()
+        if cot <= 0:
             messagebox.showerror("Error", "Cotización inválida")
             return
         cliente = self.cliente_entry.get().strip()
@@ -306,6 +293,7 @@ class CajaApp(tk.Tk):
         messagebox.showinfo("Éxito", "Operación registrada.", parent=self)
 
         # Limpiar formulario
+       
         self.cotizacion_entry.delete(0, tk.END)
         self.monto_recibido_entry.delete(0, tk.END)
         self.monto_deberia_var.set("")
@@ -315,7 +303,6 @@ class CajaApp(tk.Tk):
         self.monto_ent_calc = None
         self.pendiente_var.set(False)
         self.lbl_diferencia.config(text="")
-
         self.actualizar_tabla_caja()
 
     def actualizar_tabla_caja(self):
@@ -368,7 +355,8 @@ class CajaApp(tk.Tk):
                     deuda = f"{o[6]} {falta:.2f}"
                 elif falta < -0.001:
                     deuda = f"{o[6]} sobra {-falta:.2f}"
-            tree.insert('', 'end', values=(o[0], o[1], o[2], recibido, entregado, f"{o[9]:.2f}" if o[9] else "—", deuda, o[11], o[10] or ""), tags=(o[11],))
+            cot_str = f"{o[9]:.2f}".rstrip('0').rstrip('.') if o[9] else "—"
+            tree.insert('', 'end', values=(o[0], o[1], o[2], recibido, entregado, cot_str, deuda, o[11], o[10] or ""), tags=(o[11],))
             
         tree.tag_configure('pendiente', background='#fff3cd')
         tree.tag_configure('completada', background='#d4edda')
@@ -476,10 +464,6 @@ class CajaApp(tk.Tk):
             messagebox.showinfo("Saldado", "Deuda saldada, orden completada.")
             editor.destroy()
             self.actualizar_tabla_caja()
-            for widget in self.winfo_children():
-                if isinstance(widget, tk.LabelFrame) and widget.cget('text') == 'Todas las órdenes':
-                    self.actualizar_vista_ordenes_general(widget)
-                    break
 
         tk.Button(editor, text="Entregar total (saldar deuda)", command=entregar_total).pack(pady=5)
 
@@ -513,10 +497,7 @@ class CajaApp(tk.Tk):
             messagebox.showinfo("Guardado", "Cambios aplicados.")
             editor.destroy()
             self.actualizar_tabla_caja()
-            for widget in self.winfo_children():
-                if isinstance(widget, tk.LabelFrame) and widget.cget('text') == 'Todas las órdenes':
-                    self.actualizar_vista_ordenes_general(widget)
-                    break
+            
 
         tk.Button(edit_frame, text="Guardar cambios", command=guardar_cambios_directos).grid(row=3, column=0, columnspan=2, pady=5)
 

@@ -386,44 +386,44 @@ class CajaApp(tk.Tk):
         id_orden = orden[0]
         moneda_rec = orden[3]
         moneda_ent = orden[6]
-        rec_calc = orden[4]   # lo que el cliente debe dar (siempre igual al real)
+        rec_calc = orden[4]
         rec_real = orden[5]
-        ent_calc = orden[7]   # lo que el cajero debía dar originalmente
-        ent_real = orden[8]   # lo que el cajero lleva entregado realmente
+        ent_calc = orden[7]
+        ent_real = orden[8]
         estado_actual = orden[11]
 
         editor = tk.Toplevel(self)
         editor.title(f"Orden {id_orden} – Gestionar entregas")
-        editor.geometry("500x500")
+        editor.geometry("500x550")
 
-        # Título destacado: tipo de operación (Compra / Venta)
-        tipo_operacion = orden[2].capitalize()  # 'compra' -> 'Compra'
+        # Título destacado: tipo de operación
+        tipo_operacion = orden[2].capitalize()
         tk.Label(editor, text=f"{tipo_operacion}", font=('Arial', 14, 'bold')).pack(pady=5)
 
-        # Línea secundaria: caja, cotización, cliente, ID
-        nombre_caja = orden[12]  # c.nombre (última columna de get_ordenes_por_caja)
-        texto_secundario = f"Caja: {nombre_caja}  |  Cotización: {orden[9]:.2f}  |  Cliente: {orden[10] or '-'}  |  ID: #{id_orden}"
+        # Línea secundaria
+        nombre_caja = orden[12]
+        texto_secundario = f"Caja: {nombre_caja}  |  Cotización: {formato_argentino(orden[9])}  |  Cliente: {orden[10] or '-'}  |  ID: #{id_orden}"
         tk.Label(editor, text=texto_secundario, font=('Arial', 10)).pack(pady=2)
-
 
         # Frame resumen
         resumen_frame = tk.LabelFrame(editor, text="Resumen de la operación")
         resumen_frame.pack(fill='x', padx=10, pady=5)
 
         tk.Label(resumen_frame, text=f"Cliente dio:").grid(row=0, column=0, padx=5, pady=2, sticky='w')
-        tk.Label(resumen_frame, text=f"{moneda_rec} {rec_real:.2f}").grid(row=0, column=1, padx=5, pady=2, sticky='w')
+        tk.Label(resumen_frame, text=f"{moneda_rec} {formato_argentino(rec_real)}").grid(row=0, column=1, padx=5, pady=2, sticky='w')
 
         tk.Label(resumen_frame, text=f"Cajero debe dar:").grid(row=1, column=0, padx=5, pady=2, sticky='w')
-        tk.Label(resumen_frame, text=f"{moneda_ent} {ent_calc:.2f}").grid(row=1, column=1, padx=5, pady=2, sticky='w')
+        tk.Label(resumen_frame, text=f"{moneda_ent} {formato_argentino(ent_calc, 6)}").grid(row=1, column=1, padx=5, pady=2, sticky='w')
 
         tk.Label(resumen_frame, text=f"Entregado hasta ahora:").grid(row=2, column=0, padx=5, pady=2, sticky='w')
-        tk.Label(resumen_frame, text=f"{moneda_ent} {ent_real:.2f}").grid(row=2, column=1, padx=5, pady=2, sticky='w')
+        tk.Label(resumen_frame, text=f"{moneda_ent} {formato_argentino(ent_real)}").grid(row=2, column=1, padx=5, pady=2, sticky='w')
 
         # Deuda
         deuda_actual = ent_calc - ent_real
-        deuda_label = tk.Label(resumen_frame, text="Deuda pendiente:", fg="red")
+        deuda_str = formato_argentino(abs(deuda_actual), 6) if abs(deuda_actual) > 0.001 else "Saldado"
+        deuda_label = tk.Label(resumen_frame, text="Deuda pendiente:", fg="red" if abs(deuda_actual) > 0.001 else "green")
         deuda_label.grid(row=3, column=0, padx=5, pady=2, sticky='w')
-        deuda_valor_label = tk.Label(resumen_frame, text=f"{moneda_ent} {deuda_actual:.2f}" if deuda_actual > 0.001 else "Saldado", fg="red")
+        deuda_valor_label = tk.Label(resumen_frame, text=f"{moneda_ent} {deuda_str}", fg="red" if abs(deuda_actual) > 0.001 else "green")
         deuda_valor_label.grid(row=3, column=1, padx=5, pady=2, sticky='w')
 
         # Frame nueva entrega
@@ -431,32 +431,25 @@ class CajaApp(tk.Tk):
         entrega_frame.pack(fill='x', padx=10, pady=10)
 
         tk.Label(entrega_frame, text=f"Monto a entregar ahora ({moneda_ent}):").grid(row=0, column=0, padx=5, pady=5, sticky='w')
-        nueva_entrega_entry = tk.Entry(entrega_frame, width=12)
+        nueva_entrega_entry = EntryNumerico(entrega_frame, width=12)
         nueva_entrega_entry.grid(row=0, column=1, padx=5, pady=5)
         tk.Label(entrega_frame, text="(se sumará al real actual)").grid(row=0, column=2, padx=5, pady=5, sticky='w')
 
         def agregar_entrega():
-            try:
-                monto = float(nueva_entrega_entry.get())
-                if monto <= 0:
-                    raise ValueError
-            except ValueError:
+            monto = nueva_entrega_entry.get_value()
+            if monto <= 0:
                 messagebox.showerror("Error", "Ingresá un monto positivo")
                 return
             nuevo_real = ent_real + monto
-            # Actualizar en BD y refrescar etiquetas
-            actualizar_reales_orden(id_orden, rec_real, nuevo_real, None)  # estado lo decide el combo después
-            # Refrescar ventana
+            actualizar_reales_orden(id_orden, rec_real, nuevo_real, None)
             editor.destroy()
-            # Reabrimos con datos frescos
+            # Reabrir con datos frescos
             orden_actualizada = get_ordenes_por_caja(caja_id=self.caja_id, limite=1000)
             for o in orden_actualizada:
                 if o[0] == id_orden:
                     self.abrir_editor_orden(o)
                     break
-            # Refrescamos tablas
             self.actualizar_tabla_caja()
-
 
         tk.Button(entrega_frame, text="Agregar entrega", command=agregar_entrega).grid(row=1, column=0, columnspan=2, pady=5)
 
@@ -469,18 +462,18 @@ class CajaApp(tk.Tk):
 
         tk.Button(editor, text="Entregar total (saldar deuda)", command=entregar_total).pack(pady=5)
 
-        # Campos de edición directa de reales (por si hay que corregir)
+        # Campos de edición directa
         edit_frame = tk.LabelFrame(editor, text="Edición directa de reales (uso excepcional)")
         edit_frame.pack(fill='x', padx=10, pady=10)
 
         tk.Label(edit_frame, text="Recibido real:").grid(row=0, column=0, padx=5, pady=5, sticky='w')
         entry_rec_real = tk.Entry(edit_frame, width=12)
-        entry_rec_real.insert(0, f"{rec_real:.2f}")
+        entry_rec_real.insert(0, formato_argentino(rec_real))
         entry_rec_real.grid(row=0, column=1, padx=5, pady=5)
 
         tk.Label(edit_frame, text="Entregado real:").grid(row=1, column=0, padx=5, pady=5, sticky='w')
         entry_ent_real = tk.Entry(edit_frame, width=12)
-        entry_ent_real.insert(0, f"{ent_real:.2f}")
+        entry_ent_real.insert(0, formato_argentino(ent_real))
         entry_ent_real.grid(row=1, column=1, padx=5, pady=5)
 
         # Estado
@@ -490,8 +483,9 @@ class CajaApp(tk.Tk):
 
         def guardar_cambios_directos():
             try:
-                nuevo_rec = float(entry_rec_real.get())
-                nuevo_ent = float(entry_ent_real.get())
+                # Usar get_value para interpretar comas y puntos
+                nuevo_rec = EntryNumerico.get_value_from_text(entry_rec_real.get())
+                nuevo_ent = EntryNumerico.get_value_from_text(entry_ent_real.get())
             except ValueError:
                 messagebox.showerror("Error", "Valores numéricos inválidos")
                 return
@@ -499,24 +493,24 @@ class CajaApp(tk.Tk):
             messagebox.showinfo("Guardado", "Cambios aplicados.")
             editor.destroy()
             self.actualizar_tabla_caja()
-            
 
         tk.Button(edit_frame, text="Guardar cambios", command=guardar_cambios_directos).grid(row=3, column=0, columnspan=2, pady=5)
 
         # Actualizar deuda visual al modificar reales directamente
         def actualizar_deuda_visual(*args):
             try:
-                rec = float(entry_rec_real.get())
-                ent = float(entry_ent_real.get())
+                rec = EntryNumerico.get_value_from_text(entry_rec_real.get())
+                ent = EntryNumerico.get_value_from_text(entry_ent_real.get())
             except:
                 return
             deuda = ent_calc - ent
-            deuda_valor_label.config(text=f"{moneda_ent} {deuda:.2f}" if abs(deuda) > 0.001 else "Saldado")
+            deuda_str = formato_argentino(abs(deuda), 6) if abs(deuda) > 0.001 else "Saldado"
+            deuda_valor_label.config(text=f"{moneda_ent} {deuda_str}")
+
         entry_ent_real.bind('<KeyRelease>', actualizar_deuda_visual)
         entry_rec_real.bind('<KeyRelease>', actualizar_deuda_visual)
 
         tk.Button(editor, text="Cerrar", command=editor.destroy).pack(pady=5)
-
 
     def actualizar_vista_cotizaciones(self, frame):
         for w in frame.winfo_children():

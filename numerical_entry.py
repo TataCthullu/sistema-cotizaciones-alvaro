@@ -41,3 +41,14 @@ class EntryNumerico(tk.Entry):
     def set_value(self, value, decimales=2):
         self.delete(0, tk.END)
         self.insert(0, formato_argentino(value, decimales))
+
+    @staticmethod
+    def get_value_from_text(texto):
+        """Devuelve float interpretando comas y puntos."""
+        if not texto.strip():
+            return 0.0
+        texto = texto.replace('.', '').replace(',', '.')
+        try:
+            return float(texto)
+        except ValueError:
+            raise ValueError("Valor inválido")    

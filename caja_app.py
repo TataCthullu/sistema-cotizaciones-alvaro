@@ -76,73 +76,86 @@ class CajaApp(tk.Tk):
         self.monto_rec_calc = None
         self.monto_ent_calc = None
 
-        # Fila 0: Tipo (Botones Compra / Venta)
-        tk.Label(form_frame, text="Tipo:").grid(row=0, column=0, padx=5, pady=5, sticky='w')
-        tipo_frame = tk.Frame(form_frame)
-        tipo_frame.grid(row=0, column=1, columnspan=2, padx=5, pady=5, sticky='w')
-
+        # --- Formulario (cada fila es un Frame) ---
+        # Fila 0: Tipo
+        fila0 = tk.Frame(form_frame)
+        fila0.pack(fill='x', pady=5)
+        tk.Label(fila0, text="Tipo:").pack(side='left', padx=5)
+        tipo_frame = tk.Frame(fila0)
+        tipo_frame.pack(side='left', padx=5)
         self.btn_venta = tk.Button(tipo_frame, text="VENTA", font=('Arial', 10, 'bold'),
                                    bg='#e6ffe6', fg='green', width=10,
                                    command=self.seleccionar_venta)
         self.btn_venta.pack(side='left', padx=12)
-
         self.btn_compra = tk.Button(tipo_frame, text="COMPRA", font=('Arial', 10),
                                     bg='#f0f0f0', fg='black', width=10,
                                     command=self.seleccionar_compra)
-        self.btn_compra.pack(side='left', padx=12)
+        self.btn_compra.pack(side='left', padx=20)
 
         # Fila 1: Moneda
-        tk.Label(form_frame, text="Moneda:").grid(row=1, column=0, padx=5, pady=5, sticky='w')
+        fila1 = tk.Frame(form_frame)
+        fila1.pack(fill='x', pady=5)
+        tk.Label(fila1, text="Moneda:").pack(side='left', padx=5)
         self.moneda_ref_var = tk.StringVar(value='USD')
-        moneda_ref_combo = ttk.Combobox(form_frame, textvariable=self.moneda_ref_var,
+        moneda_ref_combo = ttk.Combobox(fila1, textvariable=self.moneda_ref_var,
                                         values=MONEDAS_EXT, state='readonly', width=6)
-        moneda_ref_combo.grid(row=1, column=1, padx=5, pady=5, sticky='w')
+        moneda_ref_combo.pack(side='left', padx=5)
         moneda_ref_combo.bind('<<ComboboxSelected>>', lambda e: self.actualizar_labels())
 
         # Fila 2: Cotización
-        tk.Label(form_frame, text="Cotización:").grid(row=2, column=0, padx=5, pady=5, sticky='w')
-        self.cotizacion_entry = EntryNumerico(form_frame, width=12)
-        self.cotizacion_entry.grid(row=2, column=1, padx=5, pady=5, sticky='w')
-        tk.Button(form_frame, text="Usar sugerida", command=self.usar_cotizacion_sugerida).grid(row=2, column=2, padx=5, pady=5, sticky='w')
+        fila2 = tk.Frame(form_frame)
+        fila2.pack(fill='x', pady=5)
+        tk.Label(fila2, text="Cotización:").pack(side='left', padx=5)
+        self.cotizacion_entry = EntryNumerico(fila2, width=12)
+        self.cotizacion_entry.pack(side='left', padx=5)
+        tk.Button(fila2, text="Usar sugerida", command=self.usar_cotizacion_sugerida).pack(side='left', padx=5)
 
-        # Fila 3: Recibí (cliente da)
-        self.lbl_recibido = tk.Label(form_frame, text="Recibí (cliente da ARS):")
-        self.lbl_recibido.grid(row=3, column=0, padx=5, pady=5, sticky='w')
-        self.moneda_recibida_var = tk.StringVar(value='ARS')
-        tk.Label(form_frame, textvariable=self.moneda_recibida_var, width=6).grid(row=3, column=1, padx=5, pady=5)
-        self.monto_recibido_entry = EntryNumerico(form_frame, width=12)
-        self.monto_recibido_entry.grid(row=3, column=2, padx=5, pady=5)
+        # Fila 3: Recibí
+        fila3 = tk.Frame(form_frame)
+        fila3.pack(fill='x', pady=5)
+        self.lbl_recibido = tk.Label(fila3, text="Recibí (ARS):")
+        self.lbl_recibido.pack(side='left', padx=5)
+        self.monto_recibido_entry = EntryNumerico(fila3, width=12)
+        self.monto_recibido_entry.pack(side='left', padx=5)
 
-        # Fila 4: Debería dar (cajero) – calculado
-        self.lbl_deberia = tk.Label(form_frame, text="Debería dar (cajero USD):")
-        self.lbl_deberia.grid(row=4, column=0, padx=5, pady=5, sticky='w')
-        self.moneda_entregada_var = tk.StringVar(value='USD')
-        tk.Label(form_frame, textvariable=self.moneda_entregada_var, width=6).grid(row=4, column=1, padx=5, pady=5)
+        # Fila 4: Debería dar
+        fila4 = tk.Frame(form_frame)
+        fila4.pack(fill='x', pady=5)
+        self.lbl_deberia = tk.Label(fila4, text="Debería dar (USD):")
+        self.lbl_deberia.pack(side='left', padx=5)
         self.monto_deberia_var = tk.StringVar(value="")
-        tk.Entry(form_frame, textvariable=self.monto_deberia_var, state='readonly', width=12).grid(row=4, column=2, padx=5, pady=5)
-        tk.Button(form_frame, text="Calcular", command=self.calcular_deberia).grid(row=4, column=3, padx=5, pady=5)
+        tk.Entry(fila4, textvariable=self.monto_deberia_var, state='readonly', width=12).pack(side='left', padx=5)
+        tk.Button(fila4, text="Calcular", command=self.calcular_deberia).pack(side='left', padx=5)
 
-        # Fila 5: Dio efectivamente (cajero) – manual
-        self.lbl_dio = tk.Label(form_frame, text="Dio efectivamente (cajero USD):")
-        self.lbl_dio.grid(row=5, column=0, padx=5, pady=5, sticky='w')
-        tk.Label(form_frame, textvariable=self.moneda_entregada_var, width=6).grid(row=5, column=1, padx=5, pady=5)
-        self.monto_dio_entry = EntryNumerico(form_frame, width=12)
-        self.monto_dio_entry.grid(row=5, column=2, padx=5, pady=5)
-        tk.Button(form_frame, text="Usar calculado", command=self.usar_calculado).grid(row=5, column=3, padx=5, pady=5)
+        # Fila 5: Dio efectivamente
+        fila5 = tk.Frame(form_frame)
+        fila5.pack(fill='x', pady=5)
+        self.lbl_dio = tk.Label(fila5, text="Dio efectivamente (USD):")
+        self.lbl_dio.pack(side='left', padx=5)
+        self.monto_dio_entry = EntryNumerico(fila5, width=12)
+        self.monto_dio_entry.pack(side='left', padx=5)
+        tk.Button(fila5, text="Usar calculado", command=self.usar_calculado).pack(side='left', padx=5)
 
-        # Fila 6: Diferencia
-        self.lbl_diferencia = tk.Label(form_frame, text="", fg="red")
-        self.lbl_diferencia.grid(row=6, column=0, columnspan=4, pady=5)
+        # Fila 6: Cliente
+        fila6 = tk.Frame(form_frame)
+        fila6.pack(fill='x', pady=5)
+        tk.Label(fila6, text="Cliente:").pack(side='left', padx=5)
+        self.cliente_entry = tk.Entry(fila6, width=20)
+        self.cliente_entry.pack(side='left', padx=5)
 
-        # Fila 7: Cliente
-        tk.Label(form_frame, text="Cliente:").grid(row=7, column=0, padx=5, pady=5, sticky='w')
-        self.cliente_entry = tk.Entry(form_frame, width=20)
-        self.cliente_entry.grid(row=7, column=1, columnspan=2, padx=5, pady=5, sticky='w')
-
-        # Fila 8: Pendiente y Guardar
+        # Fila 7: Pendiente
+        fila7 = tk.Frame(form_frame)
+        fila7.pack(fill='x', pady=5)
         self.pendiente_var = tk.BooleanVar(value=False)
-        tk.Checkbutton(form_frame, text="Dejar pendiente", variable=self.pendiente_var).grid(row=8, column=0, columnspan=2, pady=5, sticky='w')
-        tk.Button(form_frame, text="Guardar operación", command=self.guardar_operacion).grid(row=8, column=2, columnspan=2, pady=5)
+        tk.Checkbutton(fila7, text="Dejar pendiente", variable=self.pendiente_var).pack(side='left', padx=5)
+        
+        # Fila 8: Guardar
+        fila8 = tk.Frame(form_frame)
+        fila8.pack(fill='x', pady=5)
+        tk.Button(fila8, text="Guardar operación", command=self.guardar_operacion).pack(side='left', padx=45)
+        
+
+        # ========== FIN FORMULARIO CORREGIDO ==========
 
         # ---- Tabla de órdenes de la caja ----
         ordenes_frame = tk.LabelFrame(self, text="Operaciones en esta caja (doble clic para editar)")
@@ -202,22 +215,16 @@ class CajaApp(tk.Tk):
         moneda_ref = self.moneda_ref_var.get()
         if tipo == 'venta':
             self.lbl_tipo_operacion.config(text="VENTA", fg='green')
-            self.lbl_recibido.config(text="Recibí (cliente da ARS):")
-            self.moneda_recibida_var.set('ARS')
-            self.lbl_deberia.config(text=f"Debería dar (cajero {moneda_ref}):")
-            self.lbl_dio.config(text=f"Dio efectivamente (cajero {moneda_ref}):")
-            self.moneda_entregada_var.set(moneda_ref)
+            self.lbl_recibido.config(text=f"Recibí (ARS):")
+            self.lbl_deberia.config(text=f"Debería dar ({moneda_ref}):")
+            self.lbl_dio.config(text=f"Dio efectivamente ({moneda_ref}):")
         else:
             self.lbl_tipo_operacion.config(text="COMPRA", fg='blue')
-            self.lbl_recibido.config(text=f"Recibí (cliente da {moneda_ref}):")
-            self.moneda_recibida_var.set(moneda_ref)
-            self.lbl_deberia.config(text="Debería dar (cajero ARS):")
-            self.lbl_dio.config(text="Dio efectivamente (cajero ARS):")
-            self.moneda_entregada_var.set('ARS')
+            self.lbl_recibido.config(text=f"Recibí ({moneda_ref}):")
+            self.lbl_deberia.config(text="Debería dar (ARS):")
+            self.lbl_dio.config(text="Dio efectivamente (ARS):")
 
     def calcular_deberia(self):
-        
-
         cot = self.cotizacion_entry.get_value()
         if cot <= 0:
             messagebox.showerror("Error", "Ingresá una cotización válida")

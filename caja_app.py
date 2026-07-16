@@ -108,7 +108,9 @@ class CajaApp(tk.Tk):
         tk.Label(fila2, text="Cotización:").pack(side='left', padx=5)
         self.cotizacion_entry = EntryNumerico(fila2, width=12)
         self.cotizacion_entry.pack(side='left', padx=5)
-        tk.Button(fila2, text="Usar sugerida", command=self.usar_cotizacion_sugerida).pack(side='left', padx=5)
+
+        self.btn_sugerida = tk.Button(fila2, text="Usar sugerida", command=self.usar_cotizacion_sugerida)
+        self.btn_sugerida.pack(side='left', padx=5)
 
         # Fila 3: Recibí
         fila3 = tk.Frame(form_frame)
@@ -125,7 +127,9 @@ class CajaApp(tk.Tk):
         self.lbl_deberia.pack(side='left', padx=5)
         self.monto_deberia_var = tk.StringVar(value="")
         tk.Entry(fila4, textvariable=self.monto_deberia_var, state='readonly', width=12).pack(side='left', padx=5)
-        tk.Button(fila4, text="Calcular", command=self.calcular_deberia).pack(side='left', padx=5)
+        
+        self.btn_calcular = tk.Button(fila4, text="Calcular", command=self.calcular_deberia)
+        self.btn_calcular.pack(side='left', padx=5)
 
         # Fila 5: Dio efectivamente
         fila5 = tk.Frame(form_frame)
@@ -134,7 +138,9 @@ class CajaApp(tk.Tk):
         self.lbl_dio.pack(side='left', padx=5)
         self.monto_dio_entry = EntryNumerico(fila5, width=12)
         self.monto_dio_entry.pack(side='left', padx=5)
-        tk.Button(fila5, text="Usar calculado", command=self.usar_calculado).pack(side='left', padx=5)
+        
+        self.btn_usar_calculado = tk.Button(fila5, text="Usar calculado", command=self.usar_calculado)
+        self.btn_usar_calculado.pack(side='left', padx=5)
 
         # Fila 6: Cliente
         fila6 = tk.Frame(form_frame)
@@ -147,14 +153,30 @@ class CajaApp(tk.Tk):
         fila7 = tk.Frame(form_frame)
         fila7.pack(fill='x', pady=5)
         self.pendiente_var = tk.BooleanVar(value=False)
-        tk.Checkbutton(fila7, text="Dejar pendiente", variable=self.pendiente_var).pack(side='left', padx=5)
         
+        self.chk_pendiente = tk.Checkbutton(fila7, text="Dejar pendiente", variable=self.pendiente_var)
+        self.chk_pendiente.pack(side='left', padx=5)
+
         # Fila 8: Guardar
         fila8 = tk.Frame(form_frame)
         fila8.pack(fill='x', pady=5)
-        tk.Button(fila8, text="Guardar operación", command=self.guardar_operacion).pack(side='left', padx=45)
-        
+        self.btn_guardar = tk.Button(fila8, text="Guardar operación", command=self.guardar_operacion)
+        self.btn_guardar.pack(side='left', padx=45)
 
+
+        # --- Bindeos de teclado (Enter) ---
+        self.btn_venta.bind('<Return>', lambda e: self.seleccionar_venta())
+        self.btn_compra.bind('<Return>', lambda e: self.seleccionar_compra())
+        self.btn_sugerida.bind('<Return>', lambda e: self.usar_cotizacion_sugerida())
+        self.btn_calcular.bind('<Return>', lambda e: self.calcular_deberia())
+        self.btn_usar_calculado.bind('<Return>', lambda e: self.usar_calculado())
+        self.chk_pendiente.bind('<Return>', lambda e: self.pendiente_var.set(not self.pendiente_var.get()))
+        self.btn_guardar.bind('<Return>', lambda e: self.guardar_operacion())
+        # Fila de diferencia (puede quedar vacía)
+        fila_diff = tk.Frame(form_frame)
+        fila_diff.pack(fill='x', pady=2)
+        self.lbl_diferencia = tk.Label(fila_diff, text="", fg="red")
+        self.lbl_diferencia.pack(side='left', padx=5)
         # ========== FIN FORMULARIO CORREGIDO ==========
 
         # ---- Tabla de órdenes de la caja ----

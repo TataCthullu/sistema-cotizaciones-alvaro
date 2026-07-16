@@ -31,7 +31,7 @@ class CajaApp(tk.Tk):
         tk.Label(self, text="Contraseña:").pack(pady=5)
         self.entry_pass = tk.Entry(self, show="*")
         self.entry_pass.pack(pady=5)
-        
+
         self.btn_ingresar = tk.Button(self, text="Ingresar", command=self.login)
         self.btn_ingresar.pack(pady=10)
         self.btn_ingresar.bind('<Return>', lambda e: self.login())
@@ -388,7 +388,16 @@ class CajaApp(tk.Tk):
                     deuda = f"{o[6]} {formato_argentino(falta)}"
                 elif falta < -0.001:
                     deuda = f"{o[6]} sobra {formato_argentino(-falta)}"
-            cot_str = formato_argentino(o[9]) if o[9] else "—"
+                    
+            tipo_op = o[2]
+            moneda_rec = o[3]
+            moneda_ent = o[6]
+            if tipo_op == 'venta':
+                moneda_cot = moneda_rec   # la cotización está en lo que da el cliente
+            else:  # compra
+                moneda_cot = moneda_ent   # la cotización está en lo que da el cajero
+            cot_str = f"{moneda_cot} {formato_argentino(o[9])}" if o[9] else "—"
+
             tree.insert('', 'end', values=(o[0], o[1], o[2], recibido, entregado, cot_str, deuda, o[11], o[10] or ""), tags=(o[11],))
 
             

@@ -220,7 +220,16 @@ class AdminApp(tk.Tk):
                     deuda = f"{o[6]} {formato_argentino(falta)}"
                 elif falta < -0.001:
                     deuda = f"{o[6]} sobra {formato_argentino(-falta)}"
-            cot_str = formato_argentino(o[9]) if o[9] else "—"
+                    
+            tipo_op = o[2]
+            moneda_rec = o[3]
+            moneda_ent = o[6]
+            if tipo_op == 'venta':
+                moneda_cot = moneda_rec   # la cotización está en lo que da el cliente
+            else:  # compra
+                moneda_cot = moneda_ent   # la cotización está en lo que da el cajero
+            cot_str = f"{moneda_cot} {formato_argentino(o[9])}" if o[9] else "—"
+
             tree.insert('', 'end', values=(o[0], o[1], o[2], recibido, entregado, cot_str, deuda, o[11], o[10] or ""), tags=(o[11],))
 
         tree.tag_configure('pendiente', background='#fff3cd')

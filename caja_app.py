@@ -31,7 +31,10 @@ class CajaApp(tk.Tk):
         tk.Label(self, text="Contraseña:").pack(pady=5)
         self.entry_pass = tk.Entry(self, show="*")
         self.entry_pass.pack(pady=5)
-        tk.Button(self, text="Ingresar", command=self.login).pack(pady=10)
+        
+        self.btn_ingresar = tk.Button(self, text="Ingresar", command=self.login)
+        self.btn_ingresar.pack(pady=10)
+        self.btn_ingresar.bind('<Return>', lambda e: self.login())
 
     def login(self):
         nombre = self.entry_user.get()
@@ -480,7 +483,9 @@ class CajaApp(tk.Tk):
                     break
             self.actualizar_tabla_caja()
 
-        tk.Button(entrega_frame, text="Agregar entrega", command=agregar_entrega).grid(row=1, column=0, columnspan=2, pady=5)
+        btn_agregar_entrega = tk.Button(entrega_frame, text="Agregar entrega", command=agregar_entrega)
+        btn_agregar_entrega.grid(row=1, column=0, columnspan=2, pady=5)
+        btn_agregar_entrega.bind('<Return>', lambda e: agregar_entrega())
 
         # Botón entregar total
         def entregar_total():
@@ -489,8 +494,10 @@ class CajaApp(tk.Tk):
             editor.destroy()
             self.actualizar_tabla_caja()
 
-        tk.Button(editor, text="Entregar total (saldar deuda)", command=entregar_total).pack(pady=5)
-
+        btn_entregar_total = tk.Button(editor, text="Entregar total (saldar deuda)", command=entregar_total)
+        btn_entregar_total.pack(pady=5)
+        btn_entregar_total.bind('<Return>', lambda e: entregar_total())
+        
         # Campos de edición directa
         edit_frame = tk.LabelFrame(editor, text="Edición directa de reales (uso excepcional)")
         edit_frame.pack(fill='x', padx=10, pady=10)
@@ -523,7 +530,9 @@ class CajaApp(tk.Tk):
             editor.destroy()
             self.actualizar_tabla_caja()
 
-        tk.Button(edit_frame, text="Guardar cambios", command=guardar_cambios_directos).grid(row=3, column=0, columnspan=2, pady=5)
+        btn_guardar_cambios = tk.Button(edit_frame, text="Guardar cambios", command=guardar_cambios_directos)
+        btn_guardar_cambios.grid(row=3, column=0, columnspan=2, pady=5)
+        btn_guardar_cambios.bind('<Return>', lambda e: guardar_cambios_directos())
 
         # Actualizar deuda visual al modificar reales directamente
         def actualizar_deuda_visual(*args):
@@ -539,7 +548,9 @@ class CajaApp(tk.Tk):
         entry_ent_real.bind('<KeyRelease>', actualizar_deuda_visual)
         entry_rec_real.bind('<KeyRelease>', actualizar_deuda_visual)
 
-        tk.Button(editor, text="Cerrar", command=editor.destroy).pack(pady=5)
+        btn_cerrar = tk.Button(editor, text="Cerrar", command=editor.destroy)
+        btn_cerrar.pack(pady=5)
+        btn_cerrar.bind('<Return>', lambda e: editor.destroy())
 
     def actualizar_vista_cotizaciones(self, frame):
         for w in frame.winfo_children():

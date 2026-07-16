@@ -35,6 +35,9 @@ class AdminApp(tk.Tk):
         self.entry_pass = tk.Entry(self, show="*")
         self.entry_pass.pack(pady=5)
         tk.Button(self, text="Ingresar", command=self.login).pack(pady=10)
+        # === Enter para iniciar sesión ===
+        self.entry_user.bind('<Return>', lambda e: self.login())
+        self.entry_pass.bind('<Return>', lambda e: self.login())
 
     def login(self):
         nombre = self.entry_user.get()
@@ -322,8 +325,10 @@ class AdminApp(tk.Tk):
             ventana.destroy()
             self.mostrar_panel_admin()
 
-        tk.Button(ventana, text="Guardar", command=guardar).grid(row=6, columnspan=2, pady=15)
-
+        btn_guardar = tk.Button(ventana, text="Guardar", command=guardar)
+        btn_guardar.grid(row=6, columnspan=2, pady=15)
+        btn_guardar.bind('<Return>', lambda e: guardar())
+        
     # ---------- Utilidades ----------
     def limpiar_ventana(self):
         for widget in self.winfo_children():
